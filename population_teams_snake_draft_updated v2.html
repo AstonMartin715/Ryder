@@ -1,0 +1,278 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Population Table</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+        body {
+            background-image: url('https://www.bayonetblackhorse.com/wp-content/uploads/sites/8987/2023/07/BH-14-scaled-1.jpg?w=1024');
+            background-position: center top;
+            background-size: cover;
+            background-repeat: repeat;
+
+        }
+        //.container {
+        //    background-color: rgba(255, 255, 255, 0.7);
+        //    padding: 20px;
+        //}
+        .text {
+            text-shadow: 2px 2px 4px #000000;
+        }
+        
+        table, th, td {
+            background-color: white;
+	    border: 1px solid black;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .container {
+            display: flex;
+            justify-content: space-evenly;
+        }
+        table {
+            margin-top: 20px;
+            margin-right: 10px;
+        }
+        #teamTable td, #teamTable th {
+            min-width: 100px;
+        }
+        .clickable-row {
+            cursor: pointer;
+        }
+    
+       
+</style>
+</head>
+<body>
+
+<h2>Ryder Cup Draft 2024</h2>
+
+<div class="container">
+    <div>
+        <input type="file" id="csvFileInput" accept=".csv" onchange="handleFiles(this.files)">
+        <br><br>
+        <table id="dataTable">
+            <thead>
+                <tr>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Index</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+
+
+    <div>
+        <table id="teamTable">
+            <thead contenteditable="true">
+                <tr>
+                    <th>Team A</th>
+                    <th>Team B</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+            </tbody>
+        </table>
+    </div>
+ <div>
+<table id="summaryTable" style="margin-top: 20px;">
+    <thead contenteditable="true">
+        <tr>
+            <th>Status</th>
+            <th>Team A</th>
+            <th>Team B</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Dynamically generated summary rows will go here -->
+    </tbody>
+</table>
+ <div>
+
+</div>
+
+
+
+<script>
+let currentTeam = 0; // 0 for Team A, 1 for Team B
+let picks = 0; // Number of picks made
+let teamSummary = {
+    teamA: { totalIndex: 0, playerCount: 0, statuses: {} },
+    teamB: { totalIndex: 0, playerCount: 0, statuses: {} }
+};
+
+
+function handleFiles(files) {
+    if (files.length == 0) return;
+    const file = files[0];
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const table = document.getElementById('dataTable').getElementsByTagName('tbody')[0];
+        table.innerHTML = ''; // Clear the table first
+        const lines = e.target.result.split('\n').map(line => line.split(','));
+        for (let i = 1; i < lines.length; i++) { // Start from 1 to skip header
+            const row = table.insertRow();
+            if (i < lines.length - 1) { // Check if it's not the last row
+                row.classList.add('clickable-row');
+                row.addEventListener('click', function() { selectPlayer(this); });
+            }
+            const cells = lines[i];
+            for (let j = 0; j < cells.length; j++) {
+                const cell = row.insertCell();
+                cell.textContent = cells[j];
+            }
+        }
+    };
+    reader.readAsText(file);
+}
+
+
+function selectPlayer(row) {
+    const cells = row.getElementsByTagName('td');
+    const name = cells[0].textContent + " " + cells[1].textContent;
+    const teamTable = document.getElementById('teamTable').getElementsByTagName('tbody')[0];
+    const rows = teamTable.getElementsByTagName('tr');
+    let added = false;
+    for (let i = 0; i < rows.length; i++) {
+        const cell = rows[i].getElementsByTagName('td')[currentTeam];
+        if (!cell.textContent.trim() || cell.textContent.trim() === 'Select Player') {
+            cell.style.color = 'black'; // Reset text color to black
+            cell.textContent = name; // Set player name
+            added = true;
+            break;
+        }
+    }
+    
+
+    // Assuming 'status' is in the 4th cell (index 3) and 'index' in the 3rd cell (index 2)
+    let status = cells[3].textContent;
+    let index = parseInt(cells[2].textContent, 10);
+    let teamKey = currentTeam === 0 ? 'teamA' : 'teamB';
+
+    // Update the summary data structure
+    if (!teamSummary[teamKey].statuses[status]) {
+        teamSummary[teamKey].statuses[status] = 0;
+    }
+    teamSummary[teamKey].statuses[status]++;
+    teamSummary[teamKey].totalIndex += index;
+    teamSummary[teamKey].playerCount++;
+
+    // Update the summary table
+    updateSummaryTable();
+
+	if (added) {
+        row.remove(); // Remove the player from the population table
+        updateTeam();
+    }
+}
+
+function updateTeam() {
+    const teams = 2;
+    picks++;
+    let currentRound = Math.floor(picks / teams);
+    if (currentRound % 2 === 0) { // Forward
+        currentTeam = picks % teams;
+    } else { // Reverse
+        currentTeam = (teams - 1) - (picks % teams);
+    }
+    // Highlight the next cell for selection
+    const teamTable = document.getElementById('teamTable').getElementsByTagName('tbody')[0];
+    const rows = teamTable.getElementsByTagName('tr');
+    for (let i = 0; i < rows.length; i++) {
+        const cell = rows[i].getElementsByTagName('td')[currentTeam];
+        if (!cell.textContent.trim()) {
+            cell.textContent = 'Select Player'; // Set placeholder text
+            cell.style.color = 'red'; // Set text color to red
+            break;
+        }
+    }
+
+}
+
+
+
+function updateSummaryTable() {
+    const tbody = document.getElementById('summaryTable').getElementsByTagName('tbody')[0];
+    tbody.innerHTML = ''; // Clear existing rows
+
+    // Add rows for each status
+    const statuses = new Set([...Object.keys(teamSummary.teamA.statuses), ...Object.keys(teamSummary.teamB.statuses)]);
+    statuses.forEach(status => {
+        const row = tbody.insertRow();
+        const statusCell = row.insertCell();
+        statusCell.textContent = status;
+        const teamACell = row.insertCell();
+        teamACell.textContent = teamSummary.teamA.statuses[status] || 0;
+        const teamBCell = row.insertCell();
+        teamBCell.textContent = teamSummary.teamB.statuses[status] || 0;
+    });
+
+    // Add a row for total index
+    const totalRow = tbody.insertRow();
+    totalRow.insertCell().textContent = 'Total Index';
+    totalRow.insertCell().textContent = teamSummary.teamA.totalIndex;
+    totalRow.insertCell().textContent = teamSummary.teamB.totalIndex;
+
+    // Add a row for average index
+    const averageIndexRow = tbody.insertRow();
+    averageIndexRow.insertCell().textContent = 'Average Index';
+    const teamAAverageIndex = teamSummary.teamA.playerCount ? (teamSummary.teamA.totalIndex / teamSummary.teamA.playerCount).toFixed(2) : 0;
+    const teamBAverageIndex = teamSummary.teamB.playerCount ? (teamSummary.teamB.totalIndex / teamSummary.teamB.playerCount).toFixed(2) : 0;
+    averageIndexRow.insertCell().textContent = teamAAverageIndex;
+    averageIndexRow.insertCell().textContent = teamBAverageIndex;
+}
+
+updateSummaryTable();
+
+function initSelection() {
+    // Set 'Select Player' for the first cell in Team A
+    const teamTable = document.getElementById('teamTable').getElementsByTagName('tbody')[0];
+    const firstRow = teamTable.getElementsByTagName('tr')[0];
+    if (firstRow) {
+        const firstCell = firstRow.getElementsByTagName('td')[0]; // First cell in Team A
+        firstCell.textContent = 'Select Player'; // Set placeholder text
+        firstCell.style.color = 'red'; // Set text color to red
+    }
+}
+
+
+initSelection();
+
+
+</script>
+
+</body>
+</html>
